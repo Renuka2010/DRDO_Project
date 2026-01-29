@@ -1,0 +1,456 @@
+
+MISRA_C_RULES_EXAMPLES_SCENARIOS
+================================
+
+RULE 1: No Unused Variables
+--------------------------------------------------
+Scenario 1:
+Unused variable declared but never used.
+Example:
+int main(void) {
+    int x = 10;  // unused
+    return 0;
+}
+
+Scenario 2:
+Temporary variable forgotten after refactor.
+Example:
+void func(void) {
+    int temp;
+}
+
+Scenario 3:
+Unused loop counter.
+Example:
+for (int i = 0; i < 5; i++) {
+    do_something();
+}
+
+Scenario 4:
+Unused function parameter.
+Example:
+void foo(int a) {
+    printf("Hello");
+}
+
+Scenario 5:
+Unused global variable.
+Example:
+int g_value;
+
+--------------------------------------------------
+RULE 2: Variables Must Be Initialized
+--------------------------------------------------
+Scenario 1:
+Using variable without initialization.
+Example:
+int x;
+printf("%d", x);
+
+Scenario 2:
+Condition check with uninitialized value.
+Example:
+int flag;
+if (flag) {}
+
+Scenario 3:
+Array element not initialized.
+Example:
+int arr[5];
+printf("%d", arr[2]);
+
+Scenario 4:
+Pointer not initialized.
+Example:
+int *p;
+*p = 10;
+
+Scenario 5:
+Struct member uninitialized.
+Example:
+struct A { int x; };
+struct A a;
+printf("%d", a.x);
+
+--------------------------------------------------
+RULE 3: Avoid Magic Numbers
+--------------------------------------------------
+Scenario 1:
+Hardcoded numeric values.
+Example:
+if (speed > 90) {}
+
+Scenario 2:
+Magic delay value.
+Example:
+delay(500);
+
+Scenario 3:
+Array size magic number.
+Example:
+int arr[10];
+
+Scenario 4:
+Bitmask magic number.
+Example:
+reg = reg | 0x04;
+
+Scenario 5:
+Loop limit magic number.
+Example:
+for(int i=0;i<7;i++) {}
+
+--------------------------------------------------
+RULE 4: Use Braces for Control Statements
+--------------------------------------------------
+Scenario 1:
+If without braces.
+Example:
+if (x > 0)
+    y++;
+
+Scenario 2:
+Else ambiguity.
+Example:
+if (a)
+    if (b)
+        c++;
+else
+    d++;
+
+Scenario 3:
+For loop without braces.
+Example:
+for(int i=0;i<5;i++)
+    sum += i;
+
+Scenario 4:
+While without braces.
+Example:
+while(x)
+    x--;
+
+Scenario 5:
+Nested control confusion.
+Example:
+if(a)
+    for(i=0;i<5;i++)
+        func();
+
+--------------------------------------------------
+RULE 5: No Implicit Type Conversions
+--------------------------------------------------
+Scenario 1:
+Assigning float to int.
+Example:
+int x = 3.14;
+
+Scenario 2:
+Signed to unsigned conversion.
+Example:
+unsigned int u = -1;
+
+Scenario 3:
+Char to int assumption.
+Example:
+char c = 'A';
+int x = c;
+
+Scenario 4:
+Mixing int and float.
+Example:
+float f = 5 + 2.5;
+
+Scenario 5:
+Comparison of different types.
+Example:
+if (u > -5) {}
+
+--------------------------------------------------
+RULE 6: Avoid Recursion
+--------------------------------------------------
+Scenario 1:
+Simple recursion.
+Example:
+int fact(int n) {
+    return n * fact(n-1);
+}
+
+Scenario 2:
+Indirect recursion.
+Example:
+void a(void){ b(); }
+void b(void){ a(); }
+
+Scenario 3:
+Recursive ISR.
+Example:
+void ISR(void){ ISR(); }
+
+Scenario 4:
+Recursive error handling.
+Example:
+void error(void){ error(); }
+
+Scenario 5:
+Unbounded recursion.
+Example:
+void f(void){ f(); }
+
+--------------------------------------------------
+RULE 7: Functions Must Have Prototypes
+--------------------------------------------------
+Scenario 1:
+Function called before declaration.
+Example:
+int main(void){ foo(); }
+void foo(void){}
+
+Scenario 2:
+Missing parameter types.
+Example:
+foo(a,b);
+
+Scenario 3:
+Implicit int return.
+Example:
+foo(){}
+
+Scenario 4:
+Prototype mismatch.
+Example:
+int foo(int);
+void foo(float);
+
+Scenario 5:
+External function without header.
+Example:
+extern int bar();
+
+--------------------------------------------------
+RULE 8: Avoid Global Variables
+--------------------------------------------------
+Scenario 1:
+Global used everywhere.
+Example:
+int g;
+
+Scenario 2:
+Global modified by many functions.
+Example:
+int count;
+
+Scenario 3:
+Global used instead of parameter.
+Example:
+int data;
+
+Scenario 4:
+Global causes race condition.
+Example:
+int shared;
+
+Scenario 5:
+Hidden dependency.
+Example:
+int status;
+
+--------------------------------------------------
+RULE 9: No Dynamic Memory Allocation
+--------------------------------------------------
+Scenario 1:
+Using malloc.
+Example:
+int *p = malloc(sizeof(int));
+
+Scenario 2:
+Memory leak.
+Example:
+malloc(10);
+
+Scenario 3:
+Free missing.
+Example:
+p = malloc(20);
+
+Scenario 4:
+Fragmentation risk.
+Example:
+malloc(size);
+
+Scenario 5:
+Allocation in loop.
+Example:
+while(1){ malloc(5); }
+
+--------------------------------------------------
+RULE 10: Avoid Pointer Arithmetic
+--------------------------------------------------
+Scenario 1:
+Pointer increment.
+Example:
+p++;
+
+Scenario 2:
+Pointer subtraction.
+Example:
+p = p + 2;
+
+Scenario 3:
+Array access via pointer math.
+Example:
+*(p+1);
+
+Scenario 4:
+Comparing pointers.
+Example:
+if(p1 > p2){}
+
+Scenario 5:
+Complex pointer expression.
+Example:
+*(p + i + j);
+
+--------------------------------------------------
+RULE 11: Use const Where Possible
+--------------------------------------------------
+Scenario 1:
+Read-only variable not const.
+Example:
+int max = 100;
+
+Scenario 2:
+Pointer to constant data missing const.
+Example:
+char *msg = "HELLO";
+
+Scenario 3:
+Function parameter not const.
+Example:
+void print(char *s);
+
+Scenario 4:
+Global constant missing const.
+Example:
+int limit = 10;
+
+Scenario 5:
+Array constant not const.
+Example:
+int arr[3] = {1,2,3};
+
+--------------------------------------------------
+RULE 12: Avoid Multiple Returns
+--------------------------------------------------
+Scenario 1:
+Multiple return paths.
+Example:
+if(x) return 1;
+return 0;
+
+Scenario 2:
+Early exit logic.
+Example:
+if(err) return -1;
+
+Scenario 3:
+Complex branching.
+Example:
+if(a) return 1;
+else if(b) return 2;
+
+Scenario 4:
+Hard to test.
+Example:
+return x>0?1:0;
+
+Scenario 5:
+Reduced readability.
+Example:
+if(a){return a;}
+
+--------------------------------------------------
+RULE 13: Avoid Macros for Functions
+--------------------------------------------------
+Scenario 1:
+Macro instead of function.
+Example:
+#define SQR(x) x*x
+
+Scenario 2:
+Side effect macro.
+Example:
+SQR(i++)
+
+Scenario 3:
+Debug difficulty.
+Example:
+#define ADD(a,b) a+b
+
+Scenario 4:
+Type unsafe macro.
+Example:
+#define MAX(a,b) ((a)>(b)?(a):(b))
+
+Scenario 5:
+Operator precedence issue.
+Example:
+#define MUL a*b
+
+--------------------------------------------------
+RULE 14: Use Standard Library Carefully
+--------------------------------------------------
+Scenario 1:
+Using printf in embedded.
+Example:
+printf("Hi");
+
+Scenario 2:
+Using strcpy.
+Example:
+strcpy(dest, src);
+
+Scenario 3:
+Using scanf.
+Example:
+scanf("%d",&x);
+
+Scenario 4:
+Using strlen in loop.
+Example:
+for(i=0;i<strlen(s);i++)
+
+Scenario 5:
+Non-deterministic functions.
+Example:
+rand();
+
+--------------------------------------------------
+RULE 15: All Switch Statements Must Have Default
+--------------------------------------------------
+Scenario 1:
+Missing default.
+Example:
+switch(x){ case 1: break; }
+
+Scenario 2:
+Unhandled enum.
+Example:
+switch(color){ case RED: break; }
+
+Scenario 3:
+Future value risk.
+Example:
+switch(state){ case 0: break; }
+
+Scenario 4:
+Silent failure.
+Example:
+switch(cmd){ case A: break; }
+
+Scenario 5:
+No error handling.
+Example:
+switch(mode){ case 1: break; }
+
+================== END OF FILE ==================

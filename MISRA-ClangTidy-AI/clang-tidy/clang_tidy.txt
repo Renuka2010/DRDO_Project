@@ -1,0 +1,106 @@
+1️⃣ clang-tidy
+
+What is clang-tidy?
+
+👉 clang-tidy is a linting + coding-guideline tool
+
+Focuses on code quality
+Checks MISRA-C, CERT, bug-prone, readability
+Can auto-fix some issues
+Uses Clang AST (Abstract Syntax Tree)
+
+What it finds
+
+Uninitialized variables
+MISRA rule violations
+Bad coding style
+Dangerous patterns
+
+Example (clang-tidy)
+
+❌ Source code
+#include <stdio.h>
+
+int main() {
+    int x;
+    if (x > 0) {
+        printf("Positive\n");
+    }
+    return 0;
+}
+
+⚠️ clang-tidy warnings
+
+Variable x is uninitialized
+
+MISRA-C violation (use before initialization)
+
+✅ Fixed version
+#include <stdio.h>
+
+int main(void) {
+    int x = 0;
+    if (x > 0) {
+        printf("Positive\n");
+    }
+    return 0;
+}
+
+
+2️⃣ Sample clang-tidy check source code
+(Detects use of goto – MISRA related)
+
+📄 AvoidGotoCheck.h
+
+#ifndef LLVM_CLANG_TOOLS_EXTRA_CLANG_TIDY_AVOID_GOTO_CHECK_H
+#define LLVM_CLANG_TOOLS_EXTRA_CLANG_TIDY_AVOID_GOTO_CHECK_H
+
+#include "clang/Tidy/ClangTidy.h"
+
+namespace clang {
+namespace tidy {
+namespace demo {
+
+class AvoidGotoCheck : public ClangTidyCheck {
+public:
+  AvoidGotoCheck(StringRef Name, ClangTidyContext *Context)
+      : ClangTidyCheck(Name, Context) {}
+
+  void registerMatchers(ast_matchers::MatchFinder *Finder) override;
+  void check(const ast_matchers::MatchFinder::MatchResult &Result) override;
+};
+
+} // namespace demo
+} // namespace tidy
+} // namespace clang
+
+#endif
+
+
+📄 AvoidGotoCheck.cpp
+
+#include "AvoidGotoCheck.h"
+#include "clang/AST/ASTContext.h"
+#include "clang/ASTMatchers/ASTMatchFinder.h"
+
+using namespace clang::ast_matchers;
+
+namespace clang {
+namespace tidy {
+namespace demo {
+
+void AvoidGotoCheck::registerMatchers(MatchFinder *Finder) {
+  Finder->addMatcher(gotoStmt().bind("goto"), this);
+}
+
+void AvoidGotoCheck::check(const MatchFinder::MatchResult &Result) {
+  const auto *GS = Result.Nodes.getNodeAs<GotoStmt>("goto");
+  if (GS) {
+    diag(GS->getGotoLoc(),
+         "use of 'goto' is prohibited by MISRA-C guidelines");
+  }
+}
+
+} // namespace demo
+} // namespace tidy
+} // namespace clang

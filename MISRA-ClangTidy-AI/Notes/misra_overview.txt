@@ -1,0 +1,22 @@
+MISRA-C
+MISRA-C (Motor Industry Software Reliability Association – C) is a coding standard for the C language used to write safe, reliable, and predictable embedded software.
+HISTORY
+•	Draft: 1997
+•	First edition: 1998 (rules, required/advisory)
+•	Second edition: 2004 (rules, required/advisory)
+•	Third edition: 2012 (directives; rules, Decidable/Undecidable)
+•	MISRA compliance: 2016, updated 2020
+•	MISRA C:2023 (MISRA C Third edition, Second revision)
+Why MISRA-C is used
+•	Prevents runtime errors
+•	Avoids undefined/unsafe C behaviors
+•	Improves code safety, readability, and maintainability
+•	Widely used in automotive, aerospace, medical, and industrial systems
+Where it is mainly used
+•	Embedded systems
+•	Safety-critical applications
+•	Automotive ECUs (engine control units)
+Key ideas of MISRA-C
+•	Restricts dangerous C features
+•	Enforces clear and consistent coding practices
+•	Reduces bugs that compilers may not catch

@@ -1,0 +1,63 @@
+Clang Static Analyzer
+What is clang static analyzer?
+
+👉 clang static analyzer finds real bugs by analyzing execution paths
+
+Focuses on runtime bugs
+
+No auto-fix
+
+Detects:
+
+Null pointer dereference
+
+Memory leaks
+
+Dead code
+
+Divide by zero
+
+Example (Static Analyzer)
+❌ Source code
+#include <stdlib.h>
+
+int main() {
+    int *p = NULL;
+    *p = 10;
+    return 0;
+}
+
+⚠️ Static analyzer report
+Dereference of null pointer 'p'
+
+Another example (memory leak)
+#include <stdlib.h>
+
+void test() {
+    int *p = (int*)malloc(sizeof(int));
+    *p = 5;
+}
+
+
+⚠️ Warning:
+
+Memory leak: allocated memory not freed
+
+
+clang static analyzer
+
+Source code
+   ↓
+Control Flow Graph (CFG)
+   ↓
+Path-sensitive analysis
+   ↓
+Bug reports
+
+Use clang static analyzer when:
+
+Finding crashes
+
+Detecting memory leaks
+
+Ensuring runtime safety
