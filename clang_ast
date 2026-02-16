@@ -1,0 +1,331 @@
+How Clang Converts C Code to AST
+
+When you run:
+
+clang -Xclang -ast-dump -fsyntax-only test.c
+
+
+Clang internally does:
+
+Source Code
+    ↓
+Lexer
+    ↓
+Parser
+    ↓
+Sema (Semantic Analysis)
+    ↓
+AST Creation
+    ↓
+AST Dump
+
+
+Now we’ll break each part with actual clang source code locations.
+
+1️⃣ Lexer – Breaking Code into Tokens
+
+📂 Location in LLVM source:
+
+clang/lib/Lex/
+
+
+Important files:
+
+Lexer.cpp
+
+Token.h
+
+Preprocessor.cpp
+
+What it does
+
+If you write:
+
+int x = 5 + 2;
+
+
+Lexer converts into tokens:
+
+tok::kw_int
+tok::identifier (x)
+tok::equal
+tok::numeric_constant (5)
+tok::plus
+tok::numeric_constant (2)
+tok::semi
+
+Example code inside Lexer.cpp
+
+Inside clang source:
+
+bool Lexer::LexTokenInternal(Token &Result) {
+    // Reads characters
+    // Determines token type
+}
+
+
+This function reads characters one by one and creates Token objects.
+
+2️⃣ Parser – Converts Tokens → Grammar Structure
+
+📂 Location:
+
+clang/lib/Parse/
+
+
+Important files:
+
+Parser.cpp
+
+ParseDecl.cpp
+
+ParseStmt.cpp
+
+ParseExpr.cpp
+
+Example: Parsing a Declaration
+
+When clang sees:
+
+int x = 5 + 2;
+
+
+It goes into:
+
+Parser::ParseDeclaration()
+
+
+Inside ParseDecl.cpp.
+
+This function recognizes:
+
+type → int
+
+identifier → x
+
+initializer → expression
+
+3️⃣ Expression Parsing
+
+For:
+
+5 + 2
+
+
+Clang uses:
+
+Parser::ParseExpression()
+
+
+Inside:
+
+ParseExpr.cpp
+
+
+Clang uses recursive descent parsing.
+
+Example (simplified idea):
+
+ExprResult Parser::ParseAdditiveExpression() {
+    // Parse left side
+    // If '+' found
+    // Parse right side
+}
+
+4️⃣ AST Node Creation (THE IMPORTANT PART)
+
+Now comes your real question:
+
+👉 Where are AST nodes created?
+
+📂 Location:
+
+clang/lib/AST/
+clang/include/clang/AST/
+
+
+Important files:
+
+Decl.h
+
+Stmt.h
+
+Expr.h
+
+ASTContext.cpp
+
+Example: Binary Operator Node
+
+In:
+
+Expr.h
+
+
+You’ll find:
+
+class BinaryOperator : public Expr {
+
+
+When parser detects:
+
+5 + 2
+
+
+It eventually calls Sema:
+
+Sema::ActOnBinOp()
+
+
+Inside:
+
+clang/lib/Sema/SemaExpr.cpp
+
+
+This function creates:
+
+BinaryOperator::Create(...)
+
+
+That’s where actual AST node is constructed.
+
+5️⃣ Semantic Analysis (Sema)
+
+📂 Location:
+
+clang/lib/Sema/
+
+
+Parser only understands structure.
+
+But Sema checks:
+
+Is variable declared?
+
+Is type valid?
+
+Type compatibility
+
+Implicit conversions
+
+Example:
+
+Sema::ActOnVarDeclarator(...)
+
+
+Creates:
+
+VarDecl
+
+🔥 Important Architecture Concept
+
+Clang separates:
+
+Component	Responsibility
+Lexer	Character → Tokens
+Parser	Tokens → Structure
+Sema	Validity + Type checking
+AST	Final structured tree
+💡 Where Does AST Dump Come From?
+
+When you run:
+
+clang -ast-dump
+
+
+It uses:
+
+clang/lib/AST/ASTDumper.cpp
+
+
+Function:
+
+ASTDumper::Visit()
+
+
+It walks the AST and prints it.
+
+🔥 How Clang-Tidy Uses AST
+
+clang-tidy does NOT parse separately.
+
+It uses Clang frontend libraries.
+
+Flow:
+
+Clang Parser builds AST
+        ↓
+AST Matchers run on AST
+        ↓
+Your custom check runs
+
+
+Important folder:
+
+clang-tools-extra/clang-tidy/
+
+🎯 If You Want To Understand Everything
+
+Follow this learning path:
+
+STEP 1: Understand AST Nodes
+
+Read:
+
+clang/include/clang/AST/Stmt.h
+clang/include/clang/AST/Expr.h
+clang/include/clang/AST/Decl.h
+
+
+Understand:
+
+VarDecl
+
+FunctionDecl
+
+BinaryOperator
+
+IfStmt
+
+ReturnStmt
+
+STEP 2: Understand Parser
+
+Read:
+
+clang/lib/Parse/ParseExpr.cpp
+
+
+Search for:
+
+ParseAdditiveExpression
+
+STEP 3: Understand Sema
+
+Read:
+
+clang/lib/Sema/SemaExpr.cpp
+
+
+Search:
+
+ActOnBinOp
+
+STEP 4: Understand AST Traversal
+
+Read:
+
+RecursiveASTVisitor.h
+
+
+VERY IMPORTANT for clang-tidy.
+
+🧠 Very Important Concept
+
+Clang does NOT directly build AST inside parser.
+
+Instead:
+
+Parser → calls Sema → Sema builds AST nodes
+
+
+This separation is professional compiler architecture.            this one
