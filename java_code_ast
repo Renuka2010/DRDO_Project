@@ -1,0 +1,164 @@
+import java.util.*;
+
+// ---------------- AST Base ----------------
+abstract class ASTNode {
+    abstract void print(String indent);
+}
+
+// FunctionDecl
+class FunctionDecl extends ASTNode {
+    String name;
+    ASTNode body;
+
+    FunctionDecl(String name, ASTNode body) {
+        this.name = name;
+        this.body = body;
+    }
+
+    void print(String indent) {
+        System.out.println(indent + "FunctionDecl " + name);
+        body.print(indent + "  ");
+    }
+}
+
+// CompoundStmt
+class CompoundStmt extends ASTNode {
+    List<ASTNode> statements = new ArrayList<>();
+
+    void add(ASTNode stmt) {
+        statements.add(stmt);
+    }
+
+    void print(String indent) {
+        System.out.println(indent + "CompoundStmt");
+        for (ASTNode stmt : statements) {
+            stmt.print(indent + "  ");
+        }
+    }
+}
+
+// VarDecl
+class VarDecl extends ASTNode {
+    String name;
+    ASTNode init;
+
+    VarDecl(String name, ASTNode init) {
+        this.name = name;
+        this.init = init;
+    }
+
+    void print(String indent) {
+        System.out.println(indent + "VarDecl " + name);
+        init.print(indent + "  ");
+    }
+}
+
+// BinaryOperator
+class BinaryOperator extends ASTNode {
+    String op;
+    ASTNode left, right;
+
+    BinaryOperator(String op, ASTNode left, ASTNode right) {
+        this.op = op;
+        this.left = left;
+        this.right = right;
+    }
+
+    void print(String indent) {
+        System.out.println(indent + "BinaryOperator '" + op + "'");
+        left.print(indent + "  ");
+        right.print(indent + "  ");
+    }
+}
+
+// IntegerLiteral
+class IntegerLiteral extends ASTNode {
+    int value;
+
+    IntegerLiteral(int value) {
+        this.value = value;
+    }
+
+    void print(String indent) {
+        System.out.println(indent + "IntegerLiteral " + value);
+    }
+}
+
+// ReturnStmt
+class ReturnStmt extends ASTNode {
+    ASTNode expr;
+
+    ReturnStmt(ASTNode expr) {
+        this.expr = expr;
+    }
+
+    void print(String indent) {
+        System.out.println(indent + "ReturnStmt");
+        expr.print(indent + "  ");
+    }
+}
+
+// DeclRefExpr
+class DeclRefExpr extends ASTNode {
+    String name;
+
+    DeclRefExpr(String name) {
+        this.name = name;
+    }
+
+    void print(String indent) {
+        System.out.println(indent + "DeclRefExpr " + name);
+    }
+}
+
+// ---------------- Main Parser ----------------
+public class DynamicAST {
+
+    public static void main(String[] args) {
+
+        Scanner sc = new Scanner(System.in);
+
+        System.out.println("Enter C code (single line format):");
+        String code = sc.nextLine();
+
+        ASTNode ast = parse(code);
+        ast.print("");
+    }
+
+    static ASTNode parse(String code) {
+
+        // VERY SIMPLE parsing logic
+        code = code.replace("{", "")
+                   .replace("}", "")
+                   .replace(";", "")
+                   .trim();
+
+        String[] lines = code.split("return");
+
+        // Extract function name
+        String header = lines[0];
+        String funcName = header.split(" ")[1].split("\\(")[0];
+
+        CompoundStmt body = new CompoundStmt();
+
+        // Extract variable declaration
+        String varLine = header.substring(header.indexOf("int", 1)).trim();
+        String[] parts = varLine.split(" ");
+
+        String varName = parts[1];
+        int left = Integer.parseInt(parts[3]);
+        String operator = parts[4];
+        int right = Integer.parseInt(parts[5]);
+
+        body.add(new VarDecl(varName,
+                new BinaryOperator(operator,
+                        new IntegerLiteral(left),
+                        new IntegerLiteral(right))));
+
+        // Extract return
+        String returnVar = lines[1].trim();
+        body.add(new ReturnStmt(new DeclRefExpr(returnVar)));
+
+        return new FunctionDecl(funcName, body);
+    }
+}
