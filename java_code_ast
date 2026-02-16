@@ -1,16 +1,128 @@
 import java.util.*;
 
-// ---------------- AST Base ----------------
+// ======================================================
+// TOKEN SYSTEM
+// ======================================================
+
+enum TokenType {
+    INT, RETURN,
+    IDENTIFIER, NUMBER,
+    PLUS, MINUS, STAR, SLASH,
+    EQUAL, SEMI,
+    LPAREN, RPAREN,
+    LBRACE, RBRACE,
+    EOF
+}
+
+class Token {
+    TokenType type;
+    String text;
+
+    Token(TokenType type, String text) {
+        this.type = type;
+        this.text = text;
+    }
+
+    public String toString() {
+        return type + "(" + text + ")";
+    }
+}
+
+// ======================================================
+// LEXER
+// ======================================================
+
+class Lexer {
+
+    private String input;
+    private int pos = 0;
+
+    Lexer(String input) {
+        this.input = input;
+    }
+
+    private char peek() {
+        if (pos >= input.length()) return '\0';
+        return input.charAt(pos);
+    }
+
+    private char advance() {
+        return input.charAt(pos++);
+    }
+
+    List<Token> tokenize() {
+
+        List<Token> tokens = new ArrayList<>();
+
+        while (pos < input.length()) {
+
+            char c = peek();
+
+            if (Character.isWhitespace(c)) {
+                advance();
+                continue;
+            }
+
+            if (Character.isLetter(c)) {
+                StringBuilder sb = new StringBuilder();
+                while (Character.isLetterOrDigit(peek()))
+                    sb.append(advance());
+
+                String word = sb.toString();
+
+                if (word.equals("int"))
+                    tokens.add(new Token(TokenType.INT, word));
+                else if (word.equals("return"))
+                    tokens.add(new Token(TokenType.RETURN, word));
+                else
+                    tokens.add(new Token(TokenType.IDENTIFIER, word));
+
+                continue;
+            }
+
+            if (Character.isDigit(c)) {
+                StringBuilder sb = new StringBuilder();
+                while (Character.isDigit(peek()))
+                    sb.append(advance());
+
+                tokens.add(new Token(TokenType.NUMBER, sb.toString()));
+                continue;
+            }
+
+            switch (advance()) {
+                case '+': tokens.add(new Token(TokenType.PLUS, "+")); break;
+                case '-': tokens.add(new Token(TokenType.MINUS, "-")); break;
+                case '*': tokens.add(new Token(TokenType.STAR, "*")); break;
+                case '/': tokens.add(new Token(TokenType.SLASH, "/")); break;
+                case '=': tokens.add(new Token(TokenType.EQUAL, "=")); break;
+                case ';': tokens.add(new Token(TokenType.SEMI, ";")); break;
+                case '(': tokens.add(new Token(TokenType.LPAREN, "(")); break;
+                case ')': tokens.add(new Token(TokenType.RPAREN, ")")); break;
+                case '{': tokens.add(new Token(TokenType.LBRACE, "{")); break;
+                case '}': tokens.add(new Token(TokenType.RBRACE, "}")); break;
+                default:
+                    throw new RuntimeException("Unexpected character: " + c);
+            }
+        }
+
+        tokens.add(new Token(TokenType.EOF, ""));
+        return tokens;
+    }
+}
+
+// ======================================================
+// AST SYSTEM
+// ======================================================
+
 abstract class ASTNode {
     abstract void print(String indent);
 }
 
-// FunctionDecl
 class FunctionDecl extends ASTNode {
     String name;
-    ASTNode body;
+    CompoundStmt body;
 
-    FunctionDecl(String name, ASTNode body) {
+    FunctionDecl(String name, CompoundStmt body) {
         this.name = name;
         this.body = body;
     }
@@ -21,7 +133,6 @@ class FunctionDecl extends ASTNode {
     }
 }
 
-// CompoundStmt
 class CompoundStmt extends ASTNode {
     List<ASTNode> statements = new ArrayList<>();
 
@@ -31,13 +142,11 @@ class CompoundStmt extends ASTNode {
 
     void print(String indent) {
         System.out.println(indent + "CompoundStmt");
-        for (ASTNode stmt : statements) {
+        for (ASTNode stmt : statements)
             stmt.print(indent + "  ");
-        }
     }
 }
 
-// VarDecl
 class VarDecl extends ASTNode {
     String name;
     ASTNode init;
@@ -49,11 +158,24 @@ class VarDecl extends ASTNode {
 
     void print(String indent) {
         System.out.println(indent + "VarDecl " + name);
-        init.print(indent + "  ");
+        if (init != null)
+            init.print(indent + "  ");
     }
 }
 
-// BinaryOperator
+class ReturnStmt extends ASTNode {
+    ASTNode expr;
+
+    ReturnStmt(ASTNode expr) {
+        this.expr = expr;
+    }
+
+    void print(String indent) {
+        System.out.println(indent + "ReturnStmt");
+        expr.print(indent + "  ");
+    }
+}
+
 class BinaryOperator extends ASTNode {
     String op;
     ASTNode left, right;
@@ -71,7 +193,6 @@ class BinaryOperator extends ASTNode {
     }
 }
 
-// IntegerLiteral
 class IntegerLiteral extends ASTNode {
     int value;
 
@@ -84,21 +205,6 @@ class IntegerLiteral extends ASTNode {
     }
 }
 
-// ReturnStmt
-class ReturnStmt extends ASTNode {
-    ASTNode expr;
-
-    ReturnStmt(ASTNode expr) {
-        this.expr = expr;
-    }
-
-    void print(String indent) {
-        System.out.println(indent + "ReturnStmt");
-        expr.print(indent + "  ");
-    }
-}
-
-// DeclRefExpr
 class DeclRefExpr extends ASTNode {
     String name;
 
@@ -111,54 +217,161 @@ class DeclRefExpr extends ASTNode {
     }
 }
 
-// ---------------- Main Parser ----------------
-public class DynamicAST {
+// ======================================================
+// PARSER
+// ======================================================
+
+class Parser {
+
+    private List<Token> tokens;
+    private int pos = 0;
+
+    Parser(List<Token> tokens) {
+        this.tokens = tokens;
+    }
+
+    private Token peek() {
+        return tokens.get(pos);
+    }
+
+    private Token consume() {
+        return tokens.get(pos++);
+    }
+
+    private void match(TokenType type) {
+        if (peek().type == type)
+            consume();
+        else
+            throw new RuntimeException("Expected " + type + " but found " + peek().type);
+    }
+
+    FunctionDecl parseFunction() {
+
+        match(TokenType.INT);
+        String name = consume().text;
+
+        match(TokenType.LPAREN);
+        match(TokenType.RPAREN);
+        match(TokenType.LBRACE);
+
+        CompoundStmt body = new CompoundStmt();
+
+        while (peek().type != TokenType.RBRACE)
+            body.add(parseStatement());
+
+        match(TokenType.RBRACE);
+
+        return new FunctionDecl(name, body);
+    }
+
+    ASTNode parseStatement() {
+
+        if (peek().type == TokenType.INT)
+            return parseVarDecl();
+
+        if (peek().type == TokenType.RETURN)
+            return parseReturn();
+
+        throw new RuntimeException("Unknown statement");
+    }
+
+    ASTNode parseVarDecl() {
+
+        match(TokenType.INT);
+        String name = consume().text;
+
+        match(TokenType.EQUAL);
+        ASTNode expr = parseExpression();
+        match(TokenType.SEMI);
+
+        return new VarDecl(name, expr);
+    }
+
+    ASTNode parseReturn() {
+
+        match(TokenType.RETURN);
+        ASTNode expr = parseExpression();
+        match(TokenType.SEMI);
+
+        return new ReturnStmt(expr);
+    }
+
+    ASTNode parseExpression() {
+        return parseAdditive();
+    }
+
+    ASTNode parseAdditive() {
+
+        ASTNode left = parseMultiplicative();
+
+        while (peek().type == TokenType.PLUS ||
+               peek().type == TokenType.MINUS) {
+
+            String op = consume().text;
+            ASTNode right = parseMultiplicative();
+            left = new BinaryOperator(op, left, right);
+        }
+
+        return left;
+    }
+
+    ASTNode parseMultiplicative() {
+
+        ASTNode left = parsePrimary();
+
+        while (peek().type == TokenType.STAR ||
+               peek().type == TokenType.SLASH) {
+
+            String op = consume().text;
+            ASTNode right = parsePrimary();
+            left = new BinaryOperator(op, left, right);
+        }
+
+        return left;
+    }
+
+    ASTNode parsePrimary() {
+
+        Token t = consume();
+
+        if (t.type == TokenType.NUMBER)
+            return new IntegerLiteral(Integer.parseInt(t.text));
+
+        if (t.type == TokenType.IDENTIFIER)
+            return new DeclRefExpr(t.text);
+
+        throw new RuntimeException("Unexpected token: " + t.type);
+    }
+}
+
+// ======================================================
+// MAIN
+// ======================================================
+
+public class MiniCompiler {
 
     public static void main(String[] args) {
 
         Scanner sc = new Scanner(System.in);
+        System.out.println("Enter C code (end with }):");
 
-        System.out.println("Enter C code (single line format):");
-        String code = sc.nextLine();
+        StringBuilder input = new StringBuilder();
 
-        ASTNode ast = parse(code);
+        while (sc.hasNextLine()) {
+            String line = sc.nextLine();
+            input.append(line).append("\n");
+            if (line.contains("}"))
+                break;
+        }
+
+        Lexer lexer = new Lexer(input.toString());
+        List<Token> tokens = lexer.tokenize();
+
+        Parser parser = new Parser(tokens);
+        FunctionDecl ast = parser.parseFunction();
+
+        System.out.println("\n===== AST OUTPUT =====");
         ast.print("");
     }
-
-    static ASTNode parse(String code) {
-
-        // VERY SIMPLE parsing logic
-        code = code.replace("{", "")
-                   .replace("}", "")
-                   .replace(";", "")
-                   .trim();
-
-        String[] lines = code.split("return");
-
-        // Extract function name
-        String header = lines[0];
-        String funcName = header.split(" ")[1].split("\\(")[0];
-
-        CompoundStmt body = new CompoundStmt();
-
-        // Extract variable declaration
-        String varLine = header.substring(header.indexOf("int", 1)).trim();
-        String[] parts = varLine.split(" ");
-
-        String varName = parts[1];
-        int left = Integer.parseInt(parts[3]);
-        String operator = parts[4];
-        int right = Integer.parseInt(parts[5]);
-
-        body.add(new VarDecl(varName,
-                new BinaryOperator(operator,
-                        new IntegerLiteral(left),
-                        new IntegerLiteral(right))));
-
-        // Extract return
-        String returnVar = lines[1].trim();
-        body.add(new ReturnStmt(new DeclRefExpr(returnVar)));
-
-        return new FunctionDecl(funcName, body);
-    }
 }
+
