@@ -1,0 +1,186 @@
+1️⃣ How does your rule AST match with main program AST?
+
+Important point:
+
+👉 You don’t create a separate AST for the rule.
+👉 The rule is implemented as a pattern matcher.
+👉 The main program generates the AST.
+👉 Your rule searches inside that AST.
+
+Flow:
+
+User writes main.c
+
+Clang builds AST for entire file
+
+Your clang-tidy check runs
+
+It visits specific AST nodes
+
+If node matches rule condition → report violation
+
+RULE_CODE:-
+
+void registerMatchers(MatchFinder *Finder) {
+    Finder->addMatcher(gotoStmt().bind("goto"), this);
+}
+
+void check(const MatchFinder::MatchResult &Result) {
+    const GotoStmt *GS = Result.Nodes.getNodeAs<GotoStmt>("goto");
+    if (GS) {
+        diag(GS->getBeginLoc(), "MISRA violation: avoid goto");
+    }
+}
+
+2️⃣ If we write code for each rule?
+
+Yes 💯
+
+For each MISRA rule:
+
+You write:
+
+registerMatchers()
+
+check()
+
+You decide:
+
+Which AST node type?
+
+What condition?
+
+When to report?
+
+
+3️⃣ How much percentage is required to say violation?
+
+This is VERY important 👇
+
+👉 Static analysis is NOT percentage-based.
+👉 It is condition-based.
+
+❌ Wrong thinking:
+
+“If 70% matches → violation”
+
+✅ Correct thinking:
+
+“If rule condition is satisfied → violation”
+
+Example:
+
+Rule: “No goto”
+
+If 1 goto exists → violation
+
+Even 1% is enough
+
+
+
+CUSTOM CLANG_TIDY CHECK:-
+
+
+for a custom clang-tidy check, you must write both:
+
+.h → declaration
+
+.cpp → implementation
+
+That’s the proper Clang architecture.
+
+🧠 Why Two Files?
+
+Because clang-tidy follows standard C++ project structure.
+
+🔹 1️⃣ .h file (Header)
+
+Contains:
+
+Class declaration
+
+Function declarations
+
+Inheritance from ClangTidyCheck
+
+Example:
+
+class MisraGotoCheck : public ClangTidyCheck {
+public:
+  MisraGotoCheck(StringRef Name, ClangTidyContext *Context);
+
+  void registerMatchers(MatchFinder *Finder) override;
+  void check(const MatchFinder::MatchResult &Result) override;
+};
+
+This tells clang:
+
+👉 “A new rule exists.”
+
+🔹 2️⃣ .cpp file (Implementation)
+
+Contains:
+
+registerMatchers() → where AST pattern is written
+
+check() → where violation is reported
+
+Example logic:
+
+Finder->addMatcher(gotoStmt().bind("goto"), this);
+
+This is where your rule AST is defined.
+
+🎯 Real Structure Inside clang-tidy
+
+Inside
+Clang-Tidy
+every check follows this pattern:
+
+AvoidGotoCheck.h
+AvoidGotoCheck.cpp
+
+Even built-in checks like:
+
+modernize-use-nullptr
+
+readability-braces-around-statements
+
+cppcoreguidelines-avoid-goto
+
+All have .h + .cpp.
+
+🔥 So For Your MISRA Rule
+
+You must create:
+
+MisraGotoCheck.h
+MisraGotoCheck.cpp
+
+Then:
+
+Add matcher in .cpp
+
+Register in module
+
+Build
+
+Run
+
+🚨 Important
+
+If you write everything in one .cpp file, it might compile,
+but it is not correct clang-tidy architecture.
+
+Your sir will expect proper separation.
+
+🧠 Clean Architecture Flow
+Header (.h)
+    ↓
+Implementation (.cpp)
+    ↓
+Register in Module
+    ↓
+Build
+    ↓
+Run check
